@@ -156,6 +156,36 @@ main {
   margin-top: 20px;
 }
 
+.type-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.type-filter {
+  padding: 8px 16px;
+  background-color: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-transform: capitalize;
+  transition: all 0.2s;
+}
+
+.type-filter:hover {
+  border-color: #2563eb;
+  background-color: #eff6ff;
+}
+
+.type-filter.active {
+  background-color: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
 .pokemon-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -200,6 +230,43 @@ main {
   text-transform: capitalize;
   font-size: 1rem;
 }
+
+.gallery-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.type-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  text-transform: capitalize;
+  color: white;
+  font-weight: 500;
+}
+
+/* Type-specific colors */
+.type-badge.normal { background-color: #a8a878; }
+.type-badge.fire { background-color: #f08030; }
+.type-badge.water { background-color: #6890f0; }
+.type-badge.electric { background-color: #f8d030; color: #333; }
+.type-badge.grass { background-color: #78c850; }
+.type-badge.ice { background-color: #98d8d8; }
+.type-badge.fighting { background-color: #c03028; }
+.type-badge.poison { background-color: #a040a0; }
+.type-badge.ground { background-color: #e0c068; }
+.type-badge.flying { background-color: #a890f0; }
+.type-badge.psychic { background-color: #f85888; }
+.type-badge.bug { background-color: #a8b820; }
+.type-badge.rock { background-color: #b8a038; }
+.type-badge.ghost { background-color: #705898; }
+.type-badge.dragon { background-color: #7038f8; }
+.type-badge.dark { background-color: #705848; }
+.type-badge.steel { background-color: #b8b8d0; }
+.type-badge.fairy { background-color: #ee99ac; }
 
 .loading-initial,
 .loading-details {

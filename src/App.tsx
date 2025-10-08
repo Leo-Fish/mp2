@@ -7,6 +7,7 @@ interface PokemonListItem {
   name: string;
   url: string;
   imageUrl: string;
+  types?: string[];
 }
 
 interface PokemonDetails {
@@ -31,8 +32,8 @@ interface PokemonDetails {
     };
     is_hidden: boolean;
   }[];
-  height: number; 
-  weight: number; 
+  height: number;
+  weight: number;
 }
 
 
@@ -98,7 +99,7 @@ const PokemonDetail: React.FC<PokemonDetailProps> = ({ allPokemon }) => {
     };
 
     fetchDetails();
-  }, [pokemonUrl]); 
+  }, [pokemonUrl]);
 
   if (isLoading) return <div className="loading-details">Loading details...</div>;
   if (error) return <div className="error">{error} <button onClick={handleBack}>Go Back</button></div>;
@@ -169,38 +170,46 @@ const PokemonSearchPage: React.FC<PokemonSearchPageProps> = ({ allPokemon, isLoa
   const [sortKey, setSortKey] = useState<'id' | 'name'>('id');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [viewMode, setViewMode] = useState<'list' | 'gallery'>('list');
+  const [selectedType, setSelectedType] = useState<string>('');
+
+  const pokemonTypes = [
+    'normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison',
+    'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy'
+  ];
 
 
   const searchResults = useMemo(() => {
-  if (viewMode !== 'list' || !searchQuery) return [];
-  
-  const filtered = allPokemon
-    .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  
-  return [...filtered].sort((a, b) => {
-    let comparison = 0;
-    if (sortKey === 'id') {
-      const idA = parseInt(getPokemonIdFromUrl(a.url));
-      const idB = parseInt(getPokemonIdFromUrl(b.url));
-      comparison = idA - idB;
-    } else {
-      comparison = a.name.localeCompare(b.name);
-    }
-    return sortOrder === 'asc' ? comparison : -comparison;
-  });
+    if (viewMode !== 'list' || !searchQuery) return [];
+
+    const filtered = allPokemon
+      .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    return [...filtered].sort((a, b) => {
+      let comparison = 0;
+      if (sortKey === 'id') {
+        const idA = parseInt(getPokemonIdFromUrl(a.url));
+        const idB = parseInt(getPokemonIdFromUrl(b.url));
+        comparison = idA - idB;
+      } else {
+        comparison = a.name.localeCompare(b.name);
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
   }, [allPokemon, searchQuery, sortKey, sortOrder, viewMode]);
   const galleryResults = useMemo(() => {
     if (viewMode !== 'gallery') return [];
 
     let results = allPokemon;
 
-  if (searchQuery) {
-    results = allPokemon
-      .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-      .slice(0, 50); 
-    } else {
-      results = allPokemon.slice(0, 50);
+    if (searchQuery) {
+      results = results.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
     }
+
+    if (selectedType) {
+      results = results.filter(p => p.types && p.types.includes(selectedType));
+    }
+
+    results = results.slice(0, 50);
 
     return [...results].sort((a, b) => {
       let comparison = 0;
@@ -214,7 +223,7 @@ const PokemonSearchPage: React.FC<PokemonSearchPageProps> = ({ allPokemon, isLoa
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
-  }, [allPokemon, searchQuery, sortKey, sortOrder, viewMode]);
+  }, [allPokemon, searchQuery, sortKey, sortOrder, viewMode, selectedType]);
 
   const handleSelectPokemon = (url: string) => {
     const pokemonId = getPokemonIdFromUrl(url);
@@ -296,6 +305,24 @@ const PokemonSearchPage: React.FC<PokemonSearchPageProps> = ({ allPokemon, isLoa
 
           {viewMode === 'gallery' && !isLoading && (
             <div className="gallery-container">
+              <div className="type-filters">
+                <button
+                  className={`type-filter ${selectedType === '' ? 'active' : ''}`}
+                  onClick={() => setSelectedType('')}
+                >
+                  All Types
+                </button>
+                {pokemonTypes.map(type => (
+                  <button
+                    key={type}
+                    className={`type-filter ${selectedType === type ? 'active' : ''}`}
+                    onClick={() => setSelectedType(type)}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+
               {galleryResults.length > 0 ? (
                 <div className="pokemon-gallery">
                   {galleryResults.map((pokemon) => {
@@ -314,6 +341,15 @@ const PokemonSearchPage: React.FC<PokemonSearchPageProps> = ({ allPokemon, isLoa
                         <div className="gallery-info">
                           <span className="gallery-id">#{pokemonId}</span>
                           <span className="gallery-name">{pokemon.name}</span>
+                          {pokemon.types && (
+                            <div className="gallery-types">
+                              {pokemon.types.map(type => (
+                                <span key={type} className={`type-badge ${type}`}>
+                                  {type}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -347,12 +383,31 @@ const App: React.FC = () => {
     const fetchPokemonList = async () => {
       try {
         const response = await axios.get<{ results: { name: string; url: string }[] }>('https://pokeapi.co/api/v2/pokemon?limit=1302');
-        const enhancedPokemonList: PokemonListItem[] = response.data.results.map((pokemon: { name: string; url: string }) => {
+
+        // Fetch type information for the first 151 Pokémon (for performance)
+        const pokemonWithTypes = await Promise.all(
+          response.data.results.slice(0, 151).map(async (pokemon: { name: string; url: string }) => {
+            const id = getPokemonIdFromUrl(pokemon.url);
+            const imageUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+
+            try {
+              const detailResponse = await axios.get<PokemonDetails>(pokemon.url);
+              const types = detailResponse.data.types.map(t => t.type.name);
+              return { ...pokemon, id, imageUrl, types };
+            } catch {
+              return { ...pokemon, id, imageUrl };
+            }
+          })
+        );
+
+        // Add remaining Pokémon without type data for now
+        const remainingPokemon = response.data.results.slice(151).map((pokemon: { name: string; url: string }) => {
           const id = getPokemonIdFromUrl(pokemon.url);
           const imageUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
           return { ...pokemon, id, imageUrl };
         });
-        setAllPokemon(enhancedPokemonList);
+
+        setAllPokemon([...pokemonWithTypes, ...remainingPokemon]);
       } catch (err) {
         setError('Failed to load Pokémon list. Please refresh the page.');
       } finally {
@@ -361,7 +416,7 @@ const App: React.FC = () => {
     };
 
     fetchPokemonList();
-  }, []); 
+  }, []);
 
   return (
     <Routes>
