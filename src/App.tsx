@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
 
 
 interface PokemonListItem {
@@ -87,12 +88,8 @@ const PokemonDetail: React.FC<PokemonDetailProps> = ({ allPokemon }) => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetch(pokemonUrl);
-        if (!response.ok) {
-          throw new Error("Failed to fetch Pokémon details.");
-        }
-        const data: PokemonDetails = await response.json();
-        setDetails(data);
+        const response = await axios.get<PokemonDetails>(pokemonUrl);
+        setDetails(response.data);
       } catch (err) {
         setError("Could not load Pokémon data. Please try again.");
       } finally {
@@ -349,12 +346,8 @@ const App: React.FC = () => {
   useEffect(() => {
     const fetchPokemonList = async () => {
       try {
-        const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1302'); 
-        if (!response.ok) {
-          throw new Error('Network response was not ok.');
-        }
-        const data = await response.json();
-        const enhancedPokemonList: PokemonListItem[] = data.results.map((pokemon: { name: string; url: string }) => {
+        const response = await axios.get<{ results: { name: string; url: string }[] }>('https://pokeapi.co/api/v2/pokemon?limit=1302');
+        const enhancedPokemonList: PokemonListItem[] = response.data.results.map((pokemon: { name: string; url: string }) => {
           const id = getPokemonIdFromUrl(pokemon.url);
           const imageUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
           return { ...pokemon, id, imageUrl };
