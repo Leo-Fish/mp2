@@ -209,7 +209,7 @@ const PokemonSearchPage: React.FC<PokemonSearchPageProps> = ({ allPokemon, isLoa
       results = results.filter(p => p.types && p.types.includes(selectedType));
     }
 
-    results = results.slice(0, 50);
+
 
     return [...results].sort((a, b) => {
       let comparison = 0;
@@ -382,11 +382,10 @@ const App: React.FC = () => {
   useEffect(() => {
     const fetchPokemonList = async () => {
       try {
-        const response = await axios.get<{ results: { name: string; url: string }[] }>('https://pokeapi.co/api/v2/pokemon?limit=1302');
+        const response = await axios.get<{ results: { name: string; url: string }[] }>('https://pokeapi.co/api/v2/pokemon?limit=151');
 
-        // Fetch type information for the first 151 Pokémon (for performance)
         const pokemonWithTypes = await Promise.all(
-          response.data.results.slice(0, 151).map(async (pokemon: { name: string; url: string }) => {
+          response.data.results.map(async (pokemon: { name: string; url: string }) => {
             const id = getPokemonIdFromUrl(pokemon.url);
             const imageUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
 
@@ -400,14 +399,7 @@ const App: React.FC = () => {
           })
         );
 
-        // Add remaining Pokémon without type data for now
-        const remainingPokemon = response.data.results.slice(151).map((pokemon: { name: string; url: string }) => {
-          const id = getPokemonIdFromUrl(pokemon.url);
-          const imageUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-          return { ...pokemon, id, imageUrl };
-        });
-
-        setAllPokemon([...pokemonWithTypes, ...remainingPokemon]);
+        setAllPokemon(pokemonWithTypes);
       } catch (err) {
         setError('Failed to load Pokémon list. Please refresh the page.');
       } finally {
